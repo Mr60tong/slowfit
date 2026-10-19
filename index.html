@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>慢慢来 · 减重看板</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f6f5e">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="慢慢来">
+<style>
+:root{
+  --bg:#faf8f4; --card:#fff; --ink:#221f1b; --mut:#8b847a; --line:#ece8e1;
+  --acc:#2f6f5e; --acc-soft:#e9f2ee; --warn:#a9562f; --warn-soft:#faf0e9;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:linear-gradient(180deg,#fbf9f5 0%,#f4f1ea 100%);
+  color:var(--ink);font-size:15px;line-height:1.55;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  padding:14px 14px 40px;
+}
+#app{max-width:460px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px;box-shadow:0 1px 2px rgba(35,30,20,.04)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.big{font-size:38px;font-weight:680;letter-spacing:-1.2px;font-variant-numeric:tabular-nums;line-height:1.1}
+.mid{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)}
+.sm{font-size:12.5px}
+.tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;background:var(--acc-soft);color:var(--acc);font-weight:600}
+.tag.grey{background:#f2f0ec;color:var(--mut)}
+h2{font-size:13px;font-weight:650;color:var(--mut);letter-spacing:.06em;margin:0 0 12px}
+.hero{background:linear-gradient(140deg,#2f6f5e,#3f8a72);color:#fff;border:none}
+.hero h2{color:rgba(255,255,255,.72)}
+.hero ol{margin:0;padding-left:20px}
+.hero li{margin:5px 0;font-size:14.5px}
+input[type=number],input[type=date]{
+  width:100%;font-size:30px;font-weight:650;font-variant-numeric:tabular-nums;
+  padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fbfaf7;
+  color:var(--ink);outline:none;font-family:inherit;
+}
+input[type=date]{font-size:16px}
+input[type=number]:focus{border-color:var(--acc)}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:650;
+  font-family:inherit;cursor:pointer;background:#f2f0ec;color:var(--ink);transition:transform .06s}
+.btn:active{transform:scale(.985)}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.half{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bar{height:10px;border-radius:99px;background:#efede8;overflow:hidden;margin:14px 0 10px}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#3f8a72,#2f6f5e);transition:width .5s}
+.chart{width:100%;height:auto;display:block;margin:2px -4px 0}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-top:6px;padding-left:4px}
+.dot{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat b{font-size:19px;font-variant-numeric:tabular-nums}
+ul.rec{list-style:none;margin:0;padding:0}
+ul.rec li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+ul.rec li:last-child{border-bottom:none}
+.advice{background:var(--warn-soft);border:1px solid #f0dfd2;border-radius:16px;padding:16px;margin-bottom:12px}
+.advice h2{color:#a9562f}
+.advice.calm{background:var(--acc-soft);border-color:#d8e8e2}
+.advice.calm h2{color:var(--acc)}
+.hide{display:none}
+.foot{display:flex;gap:9px;margin-top:4px}
+.foot .btn{padding:11px;font-size:13.5px;font-weight:600;background:transparent;border:1px solid var(--line);color:var(--mut)}
+#set{display:grid;gap:10px}
+#set label{font-size:12.5px;color:var(--mut);display:block;margin-bottom:4px}
+#set input{font-size:18px;font-weight:600;padding:8px 10px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const KEY='slowfit.v1';
+const $=(s,r=document)=>r.querySelector(s);
+const iso=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+const today=()=>iso(new Date());
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const add=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return iso(d)};
+const dd=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
+const f1=n=>(Math.round(n*10)/10).toFixed(1);
+const WD=['周日','周一','周二','周三','周四','周五','周六'];
+
+function defaults(){return{startDate:today(),startWeight:230,targetWeight:180,weeks:28,entries:[]}}
+let db=(()=>{
+  try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);
+    if(o&&Array.isArray(o.entries))return Object.assign(defaults(),o)}}catch(e){}
+  return defaults();
+})();
+let storeOk=true;
+try{localStorage.setItem('__probe','1');localStorage.removeItem('__probe')}catch(e){storeOk=false}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db));storeOk=true}catch(e){storeOk=false}};
+
+const ent=d=>db.entries.find(e=>e.d===d);
+function put(d,patch){let e=ent(d);if(!e){e={d};db.entries.push(e)}
+  Object.assign(e,patch);db.entries.sort((a,b)=>a.d<b.d?-1:1);save()}
+const hasRec=d=>{const e=ent(d);return !!(e&&(e.w!=null||e.a))};
+const weights=()=>db.entries.filter(e=>e.w!=null).sort((a,b)=>a.d<b.d?-1:1);
+function smooth(d){
+  const a=add(d,-6), xs=weights().filter(e=>e.d>=a&&e.d<=d);
+  return xs.length?xs.reduce((s,e)=>s+e.w,0)/xs.length:null;
+}
+function lastW(d){const xs=weights().filter(e=>e.d<=d);return xs.length?xs[xs.length-1].w:null}
+function calc(){
+  const {startDate,startWeight,targetWeight,weeks}=db;
+  const rate=(startWeight-targetWeight)/Math.max(1,weeks);      // 斤/周
+  const cur=lastW(today())??startWeight;
+  const curAvg=smooth(today())??cur;
+  const el=Math.max(0,dd(startDate,today())/7);
+  const planNow=Math.max(targetWeight,startWeight-rate*el);
+  const need=startWeight-targetWeight;
+  const done=Math.max(0,startWeight-cur);
+  const pct=Math.max(0,Math.min(1,done/need));
+  const dow=(pd(today()).getDay()+6)%7;
+  const mon=add(today(),-dow);
+  const base=lastW(add(mon,-1))??startWeight;
+  const weekDone=base-cur;
+  const raw=weights().filter(e=>e.d>=add(today(),-13));
+  let slope=null;
+  if(raw.length>=5){
+    const n=raw.length,mx=(n-1)/2,my=raw.reduce((s,e)=>s+e.w,0)/n;
+    let nu=0,de=0;
+    raw.forEach((e,i)=>{const t=i-mx;nu+=t*(e.w-my);de+=t*t});
+    if(de)slope=nu/de;
+  }
+  let rateDay=slope!=null?-slope:0;
+  const usingPlan=!(rateDay>0.015);
+  if(usingPlan)rateDay=rate/7;
+  rateDay=Math.min(rateDay,rate/7*2.2);
+  const left=Math.max(0,cur-targetWeight);
+  const daysLeft=left/rateDay;
+  const eta=add(today(),Math.round(daysLeft));
+  let streak=0,d=today();
+  if(!hasRec(d))d=add(d,-1);
+  while(hasRec(d)&&streak<999){streak++;d=add(d,-1)}
+  return{rate,cur,curAvg,planNow,el,pct,done,need,weekDone,weekLeft:rate-weekDone,
+    rateDay,usingPlan,left,eta,streak,etaWeeks:daysLeft/7};
+}
+
+function chart(){
+  const W=440,H=190,pl=38,pr=14,pt=14,pb=26;
+  const back=add(today(),-14), ahead=add(today(),21);
+  const start=db.startDate>back?db.startDate:back;
+  const end=ahead;
+  const days=Math.max(2,dd(start,end)+1);
+  const X=d=>pl+(dd(start,d)/Math.max(1,days-1))*(W-pl-pr);
+  const plan=d=>Math.max(db.targetWeight,db.startWeight-(db.startWeight-db.targetWeight)/Math.max(1,db.weeks)*(dd(db.startDate,d)/7));
+  const vals=[];
+  for(let i=0;i<days;i++){const d=add(start,i);vals.push({d,p:plan(d),a:smooth(d)})}
+  const all=vals.flatMap(v=>[v.p,v.a]).filter(v=>v!=null&&isFinite(v));
+  const lo=Math.min(...all)-1.5, hi=Math.max(...all)+1.5;
+  const Y=v=>pt+(1-(v-lo)/(hi-lo))*(H-pt-pb);
+  const path=k=>{let s='',open=false;
+    for(const v of vals){const y=v[k];if(y==null){open=false;continue}
+      s+=(open?'L':'M')+X(v.d).toFixed(1)+','+Y(y).toFixed(1);open=true}
+    return s};
+  let grid='';
+  for(let i=0;i<3;i++){
+    const v=lo+(hi-lo)*(i+.5)/3, y=Y(v);
+    grid+=`<line x1="${pl}" x2="${W-pr}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#efece6"/>`;
+    grid+=`<text x="${pl-7}" y="${(y+3.5).toFixed(1)}" text-anchor="end" font-size="9.5" fill="#a9a29a">${f1(v)}</text>`;
+  }
+  const last=vals.filter(v=>v.a!=null).pop();
+  const dot=last?`<circle cx="${X(last.d).toFixed(1)}" cy="${Y(last.a).toFixed(1)}" r="3.4" fill="#2f6f5e"/>`:'';
+  const tx=X(today()).toFixed(1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${grid}
+    <line x1="${tx}" x2="${tx}" y1="${pt}" y2="${H-pb}" stroke="#e3ded5" stroke-width="1"/>
+    <path d="${path('p')}" fill="none" stroke="#c9c3b9" stroke-width="1.6" stroke-dasharray="5 5"/>
+    <path d="${path('a')}" fill="none" stroke="#2f6f5e" stroke-width="2.4" stroke-linejoin="round"/>
+    ${dot}
+    <text x="${pl}" y="${H-6}" font-size="9.5" fill="#a9a29a">${start.slice(5)}</text>
+    <text x="${tx}" y="${H-6}" text-anchor="middle" font-size="9.5" fill="#6f685f">今天</text>
+    <text x="${W-pr}" y="${H-6}" text-anchor="end" font-size="9.5" fill="#a9a29a">${end.slice(5)}</text>
+  </svg>`;
+}
+let showSet=false;
+let adviceBusy=false;
+
+function advice(s){
+  const ws=weights();
+  if(!ws.length)return{html:'<h2>第一步</h2><p style="margin:0">还没记录过体重。先把今天早上的数字填进来，后面的曲线才有起点。</p>',act:''};
+  const lastD=ws[ws.length-1].d, gap=dd(lastD,today());
+  if(gap>=3)return{html:`<h2>好久不见</h2><p style="margin:0">已经 <b>${gap} 天</b>没记录了。不用解释，也不用补作业——把今天的数字填上，就算接上了。</p>`,act:''};
+  const elapsed=dd(db.startDate,today());
+  if(elapsed<14||ws.length<8){
+    return{html:`<h2>先攒一周数据</h2><p style="margin:0">头两周体重波动大（水分、盐分都算数），现在算“实际速度”会算歪。等你记满 10 天，我再开始给你调计划。这期间只管打卡。</p>`,act:''};
+  }
+  const recent=ws.filter(e=>e.d>=add(today(),-13)).map(e=>e.w);
+  const spread=recent.length>=5?Math.max(...recent)-Math.min(...recent):99;
+  if(recent.length>=8&&spread<0.8){
+    return{html:`<h2>像是平台期</h2><p style="margin:0 0 10px">最近两周体重在 ${f1(Math.min(...recent))}–${f1(Math.max(...recent))} 斤之间打转。这是身体在适应，不是你没努力。这周可以加两次 30 分钟快走，别的都不用改。</p>`,act:''};
+  }
+  const planRate=s.rate/7;
+  if(s.rateDay<planRate*0.55){
+    const needWeeks=Math.max(db.weeks,Math.ceil(s.left/(s.rateDay*7)));
+    return{html:`<h2>计划跟不上了</h2><p style="margin:0 0 10px">按最近两周的实际速度，${needWeeks} 周更现实。这不是失败，是把地图改对——目标不变，只是路标挪一下。</p>
+      <button class="btn" data-act="adj" data-weeks="${needWeeks}">把周期改成 ${needWeeks} 周</button>`,act:'adj'};
+  }
+  if(s.rateDay>planRate*1.6){
+    return{html:`<h2>掉得比计划快</h2><p style="margin:0">注意别掉太快，瘦得太猛容易掉肌肉、也容易反弹。这周可以多吃半顿，不用硬撑。</p>`,act:''};
+  }
+  return null;
+}
+
+function render(){
+  const s=calc(), t=today(), e=ent(t), d=pd(t);
+  const wv=e&&e.w!=null?f1(e.w):'';
+  const dsince=weights().length?dd(weights().slice(-1)[0].d,t):null;
+  const adv=advice(s);
+  const recs=db.entries.slice().sort((a,b)=>a.d<b.d?1:-1).slice(0,6);
+  const recHtml=recs.length?recs.map(r=>{
+    const st=r.a==='yes'?'按计划吃':'没做到';
+    const tag=r.a?`<span class="tag ${r.a==='yes'?'':'grey'}">${st}</span>`:'';
+    return `<li><span>${r.d.slice(5).replace('-','/')} <span class="mut sm">${WD[pd(r.d).getDay()]}</span></span>
+      <span style="display:flex;gap:10px;align-items:center">
+      <b style="font-variant-numeric:tabular-nums">${r.w!=null?f1(r.w):'—'}</b>${tag}</span></li>`;
+  }).join(''):'<li class="mut">还没有记录</li>';
+
+  $('#app').innerHTML=`
+  ${storeOk?'':`<div class="advice" style="margin-bottom:12px"><h2>这个浏览器存不了数据</h2><p style="margin:0">请用 Edge 或 Chrome 打开这个文件，否则关掉页面记录就没了。</p></div>`}
+  <div class="row" style="padding:2px 4px 10px">
+    <div><div style="font-size:19px;font-weight:680">${d.getMonth()+1} 月 ${d.getDate()} 日 <span class="mut sm">${WD[d.getDay()]}</span></div>
+    <div class="mut sm">目标 ${f1(db.startWeight)} → ${f1(db.targetWeight)} 斤 · ${db.weeks} 周</div></div>
+    <div class="tag">${s.streak>0?'连续 '+s.streak+' 天':'今天开始'}</div>
+  </div>
+
+  <div class="card hero">
+    <h2>今天只做两件事</h2>
+    <ol>
+      <li>中午 + 晚上吃食堂减脂餐，每顿留 300–400 大卡缺口</li>
+      <li>起床后称重，填进下面的框（30 秒）</li>
+    </ol>
+    <div class="sm" style="margin-top:10px;color:rgba(255,255,255,.62)">其他的都不用想。做到这两件，这周就是成功的。</div>
+  </div>
+
+  <div class="card">
+    <h2>今日打卡</h2>
+    <div style="display:flex;gap:9px;align-items:center">
+      <input id="w" type="number" step="0.1" inputmode="decimal" placeholder="${f1(s.cur)}" value="${wv}">
+      <button class="btn pri" style="width:96px;flex:none" data-act="save">记下来</button>
+    </div>
+    <div class="sm mut" style="margin:8px 2px 14px">${e&&e.w!=null?'今天已记录 '+f1(e.w)+' 斤':'填“斤”，比如 229.4'}</div>
+    <div class="row sm mut" style="margin-bottom:9px"><span>吃了没？</span><span>${e&&e.a?(e.a==='yes'?'已记录：按计划':'已记录：没做到'):'选一个就行'}</span></div>
+    <div class="grid2">
+      <button class="btn ${e&&e.a==='yes'?'pri':''}" data-act="a" data-v="yes">✅ 按计划吃了</button>
+      <button class="btn" data-act="a" data-v="no">😐 今天没做到</button>
+    </div>
+    <div class="sm mut" style="margin-top:10px">没做到也照样记。不扣分，第二天接上就行。</div>
+  </div>
+
+  <div class="card">
+    <h2>总进度</h2>
+    <div class="row" style="align-items:flex-end">
+      <div><div class="big">${f1(s.done)}<span style="font-size:16px;font-weight:600"> / ${f1(s.need)} 斤</span></div>
+      <div class="mut sm" style="margin-top:2px">还剩 ${f1(s.left)} 斤，已完成 ${(s.pct*100).toFixed(0)}%</div></div>
+      <div style="text-align:right"><div class="mid">${f1(s.cur)}</div><div class="mut sm">最近一次 · 7日均 ${f1(s.curAvg)}</div></div>
+    </div>
+    <div class="bar"><i style="width:${(s.pct*100).toFixed(1)}%"></i></div>
+    <div class="row sm mut">
+      <span>今天计划线：${f1(s.planNow)} 斤</span>
+      <span>${Math.abs(s.cur-s.planNow)<0.15?'和计划持平':(s.cur<s.planNow?'领先 '+f1(s.planNow-s.cur)+' 斤':'落后 '+f1(s.cur-s.planNow)+' 斤')}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:6px"><h2 style="margin:0">体重趋势</h2>
+      <span class="sm mut">${s.usingPlan?'按计划推算':'按近两周实际节奏'}</span></div>
+    ${chart()}
+    <div class="legend"><span><i class="dot" style="background:#c9c3b9"></i>计划线</span><span><i class="dot" style="background:#2f6f5e"></i>7 日均线</span></div>
+    <div class="row sm" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line)">
+      <span class="mut">预计达标</span><span><b>${s.eta.slice(0,4)} 年 ${+s.eta.slice(5,7)} 月 ${+s.eta.slice(8,10)} 日</b>
+      <span class="mut">（${s.etaWeeks.toFixed(0)} 周）</span></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>本周</h2>
+    <div class="row" style="text-align:center">
+      <div class="stat" style="flex:1"><span class="mut sm">计划减</span><b>${f1(s.rate)} 斤</b></div>
+      <div class="stat" style="flex:1"><span class="mut sm">已减</span><b style="color:${s.weekDone>=0?'var(--acc)':'var(--warn)'}">${f1(s.weekDone)} 斤</b></div>
+      <div class="stat" style="flex:1"><span class="mut sm">还剩额度</span><b>${f1(s.weekLeft)} 斤</b></div>
+    </div>
+  </div>
+
+  ${adv&&adv.html?`<div class="advice ${adv.act?'':'calm'}">${adv.html}</div>`:''}
+
+  <div class="card">
+    <h2>最近记录${dsince!=null&&dsince>0?' · 最后更新 '+dsince+' 天前':''}</h2>
+    <ul class="rec">${recHtml}</ul>
+  </div>
+
+  <div class="card ${showSet?'':'hide'}">
+    <h2>修改目标</h2>
+    <div id="set">
+      <div><label>起始日期</label><input id="sDate" type="date" value="${db.startDate}"></div>
+      <div class="grid2">
+        <div><label>起始（斤）</label><input id="sW" type="number" step="0.1" value="${db.startWeight}"></div>
+        <div><label>目标（斤）</label><input id="tW" type="number" step="0.1" value="${db.targetWeight}"></div>
+      </div>
+      <div><label>计划周期（周）</label><input id="wk" type="number" step="1" value="${db.weeks}"></div>
+      <button class="btn pri" data-act="saveSet">保存</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="btn" data-act="set">${showSet?'收起':'改目标'}</button>
+    <button class="btn" data-act="exp">导出</button>
+    <button class="btn" data-act="imp">导入</button>
+    <button class="btn" data-act="reset">清空</button>
+  </div>
+  <input id="imp" type="file" accept=".json,application/json" class="hide">
+  <div class="sm mut" style="text-align:center;margin-top:14px;padding:0 10px">
+    数据只存在这台设备的浏览器里。换设备前先导出。
+  </div>`;
+}
+
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-act]'); if(!b)return;
+  const act=b.dataset.act;
+  if(act==='save'){
+    const v=parseFloat(($('#w')||{}).value);
+    if(!isFinite(v)||v<40||v>500){alert('先填一个体重数字，比如 229.4');return}
+    put(today(),{w:Math.round(v*10)/10}); render();
+  }
+  else if(act==='a'){ put(today(),{a:b.dataset.v}); render(); }
+  else if(act==='set'){ showSet=!showSet; render(); }
+  else if(act==='adj'){ db.weeks=Math.max(1,+b.dataset.weeks); save(); render(); }
+  else if(act==='saveSet'){
+    const sd=$('#sDate').value||db.startDate;
+    const sw=parseFloat($('#sW').value), tw=parseFloat($('#tW').value), wk=parseInt($('#wk').value,10);
+    db.startDate=sd;
+    if(isFinite(sw))db.startWeight=sw;
+    if(isFinite(tw))db.targetWeight=tw;
+    if(isFinite(wk)&&wk>0)db.weeks=wk;
+    save(); showSet=false; render();
+  }
+  else if(act==='exp'){
+    const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='减重数据-'+today()+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+  else if(act==='imp'){ const el=$('#imp'); if(el)el.click(); }
+  else if(act==='reset'){
+    if(confirm('清空全部记录？这个操作不能恢复。')){db=defaults();save();render()}
+  }
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Enter'&&ev.target&&ev.target.id==='w'){
+    ev.preventDefault();
+    const v=parseFloat(ev.target.value);
+    if(isFinite(v)&&v>40&&v<500){put(today(),{w:Math.round(v*10)/10});render()}
+  }
+});
+
+document.addEventListener('change',ev=>{
+  if(!ev.target||ev.target.id!=='imp')return;
+  const f=ev.target.files&&ev.target.files[0];
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const o=JSON.parse(r.result);
+      if(!o||!Array.isArray(o.entries))throw new Error('文件里没有记录');
+      db=Object.assign(defaults(),o);
+      save(); render();
+      alert('导入成功，共 '+o.entries.length+' 条记录');
+    }catch(e){alert('导入失败：'+e.message)}
+  };
+  r.readAsText(f);
+});
+
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+render();
+</script>
+</body>
+</html>
